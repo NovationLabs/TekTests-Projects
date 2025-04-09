@@ -63,7 +63,7 @@ print_header("TEST 02 - CLIENT")
 test2_passed = False
 client_proc = None
 try:
-    client_proc = subprocess.Popen(["./jetpack_client", "-h", "127.0.0.1", "-p", "4242", "-d"], cwd=project_dir)
+    client_proc = subprocess.Popen(["xvfb-run", "./jetpack_client", "-h", "127.0.0.1", "-p", "4242", "-d"], cwd=project_dir)
     time.sleep(2)
     if client_proc.poll() is None:
         print("Client started successfully and is running.")
