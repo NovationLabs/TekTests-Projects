@@ -1,17 +1,171 @@
-#!/usr/bin/env python3.10
+#!/usr/bin/env python3
 import os
+import subprocess
+import glob
+import time
+import re
+import socket
+import sys
 
-def check_makefile(test, total_test):
-    if os.path.isfile('Makefile'):
-        test += 1
+total_tests = 5
+passed_tests = 0
+
+def print_header(title):
+    print(f"========== [{title}] ==========")
+
+def wait_for_port(host, port, timeout=5.0):
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            with socket.create_connection((host, port), timeout=1):
+                return True
+        except:
+            time.sleep(0.2)
+    return False
+
+# Detect project directory
+project_dirs = glob.glob("B-NWP-400-MAR-4-1-jetpack*")
+if len(project_dirs) != 1:
+    print("Error: Expected exactly one project directory starting with 'B-NWP-400-MAR-4-1-jetpack'")
+    sys.exit(1)
+
+project_dir = project_dirs[0]
+
+# 1. Build the project
+print_header("BUILD PROJECT")
+try:
+    subprocess.run(["make", "fclean"], cwd=project_dir, check=True)
+    subprocess.run(["make"], cwd=project_dir, check=True)
+    print("Build succeeded.")
+except subprocess.CalledProcessError:
+    print("Build failed. Aborting all tests.")
+    sys.exit(1)
+
+# 2. Test 01 - Server
+print_header("TEST 01 - SERVER")
+test1_passed = False
+server_proc = None
+try:
+    server_proc = subprocess.Popen(["./jetpack_server", "-p", "4242", "-m", "maps/basic.map", "-d"], cwd=project_dir)
+    if wait_for_port("127.0.0.1", 4242):
+        print("Server started successfully and is listening.")
+        test1_passed = True
     else:
-        print("Makefile does not exist.")
-    return test, total_test + 1
+        print("Server did not start or failed to listen on port.")
+except Exception as e:
+    print("Error launching server:", e)
 
-if __name__ == "__main__":
-    test = 0
-    total_test = 0
+if test1_passed:
+    passed_tests += 1
 
-    test, total_test = check_makefile(test, total_test)
+# 3. Test 02 - Client (only run if server is up)
+print_header("TEST 02 - CLIENT")
+test2_passed = False
+client_proc = None
+try:
+    client_proc = subprocess.Popen(["./jetpack_client", "-h", "127.0.0.1", "-p", "4242", "-d"], cwd=project_dir)
+    time.sleep(2)
+    if client_proc.poll() is None:
+        print("Client started successfully and is running.")
+        test2_passed = True
+    else:
+        print(f"Client exited prematurely with code: {client_proc.returncode}")
+except Exception as e:
+    print("Error launching client:", e)
 
-    print(f"Test : {test}/{total_test}")
+if test2_passed:
+    passed_tests += 1
+
+# Terminate server and client if still running
+if client_proc and client_proc.poll() is None:
+    client_proc.terminate()
+    try:
+        client_proc.wait(timeout=1)
+    except:
+        client_proc.kill()
+
+if server_proc and server_proc.poll() is None:
+    server_proc.terminate()
+    try:
+        server_proc.wait(timeout=1)
+    except:
+        server_proc.kill()
+
+# 4. Test 03 - Minimal Functions Client
+print_header("TEST 03 - MINIMAL FUNCTIONS CLIENT")
+required_funcs = {"socket", "connect", "write", "read", "recv", "send", "poll"}
+client_found = set()
+
+client_files = glob.glob(os.path.join(project_dir, "**", "*client*.c"), recursive=True)
+client_files += glob.glob(os.path.join(project_dir, "**", "*client*.cpp"), recursive=True)
+
+def strip_comments(text):
+    text = re.sub(r'/\*.*?\*/', '', text, flags=re.DOTALL)
+    text = re.sub(r'//.*', '', text)
+    return text
+
+for path in client_files:
+    try:
+        with open(path, 'r') as f:
+            code = strip_comments(f.read())
+            for func in required_funcs:
+                if re.search(r'\b' + func + r'\s*\(', code):
+                    client_found.add(func)
+    except:
+        continue
+
+if required_funcs.issubset(client_found):
+    print("All required system functions found in client code.")
+    passed_tests += 1
+else:
+    missing = required_funcs - client_found
+    print("Missing functions in client:", ", ".join(sorted(missing)))
+
+# 5. Test 04 - Minimal Functions Server
+print_header("TEST 04 - MINIMAL FUNCTIONS SERVER")
+server_found = set()
+
+server_files = glob.glob(os.path.join(project_dir, "**", "*server*.c"), recursive=True)
+server_files += glob.glob(os.path.join(project_dir, "**", "*server*.cpp"), recursive=True)
+
+for path in server_files:
+    try:
+        with open(path, 'r') as f:
+            code = strip_comments(f.read())
+            for func in required_funcs:
+                if re.search(r'\b' + func + r'\s*\(', code):
+                    server_found.add(func)
+    except:
+        continue
+
+if required_funcs.issubset(server_found):
+    print("All required system functions found in server code.")
+    passed_tests += 1
+else:
+    missing = required_funcs - server_found
+    print("Missing functions in server:", ", ".join(sorted(missing)))
+
+# 6. Test 05 - Documentation
+print_header("TEST 05 - DOCUMENTATION")
+doc_path = os.path.join(project_dir, "doc.txt")
+test5_passed = False
+if not os.path.isfile(doc_path):
+    print("doc.txt is missing.")
+else:
+    try:
+        with open(doc_path, 'r') as f:
+            lines = [l.strip() for l in f if l.strip()]
+        if len(lines) >= 10:
+            print("doc.txt is present and has sufficient content.")
+            test5_passed = True
+        else:
+            print("doc.txt is too short.")
+    except Exception as e:
+        print("Error reading doc.txt:", e)
+
+if test5_passed:
+    passed_tests += 1
+
+# Summary
+print("\n========== [SUMMARY] ==========")
+print(f"Test : {passed_tests}/{total_tests}")
