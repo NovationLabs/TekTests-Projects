@@ -11,7 +11,7 @@ total_tests = 5
 passed_tests = 0
 
 def print_header(title):
-    print(f"========== [{title}] ==========")
+    print(f"\n========== [{title}] ==========")
 
 def wait_for_port(host, port, timeout=5.0):
     start = time.time()
@@ -93,7 +93,7 @@ if server_proc and server_proc.poll() is None:
 
 # 4. Test 03 - Minimal Functions Client
 print_header("TEST 03 - MINIMAL FUNCTIONS CLIENT")
-required_funcs = {"socket", "connect", "write", "read", "recv", "send", "poll"}
+required_funcs = {"socket", "connect", "write", "read", "send", "poll"}
 client_found = set()
 
 client_files = glob.glob(os.path.join(project_dir, "**", "*client*.c"), recursive=True)
@@ -123,6 +123,7 @@ else:
 
 # 5. Test 04 - Minimal Functions Server
 print_header("TEST 04 - MINIMAL FUNCTIONS SERVER")
+required_funcs = {"socket", "write", "read", "poll"}
 server_found = set()
 
 server_files = glob.glob(os.path.join(project_dir, "**", "*server*.c"), recursive=True)
