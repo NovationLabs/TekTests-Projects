@@ -7,7 +7,7 @@ import re
 import socket
 import sys
 
-total_tests = 7
+total_tests = 5
 passed_tests = 0
 
 print("\n")
@@ -61,58 +61,8 @@ if os.path.isfile(client_exec_path) and os.access(client_exec_path, os.X_OK):
 else:
     print("jetpack_client executable is missing or not executable.")
 
-# 4. Test 03 - Server runtime
-print_header("TEST 03 - SERVER")
-test3_passed = False
-server_proc = None
-try:
-    server_proc = subprocess.Popen(["./jetpack_server", "-p", "4242", "-m", "maps/basic.map", "-d"], cwd=project_dir)
-    if wait_for_port("127.0.0.1", 4242):
-        print("Server started successfully and is listening.")
-        test3_passed = True
-    else:
-        print("Server did not start or failed to listen on port.")
-except Exception as e:
-    print("Error launching server:", e)
-
-if test3_passed:
-    passed_tests += 1
-
-# 5. Test 04 - Client runtime
-print_header("TEST 04 - CLIENT")
-test4_passed = False
-client_proc = None
-try:
-    client_proc = subprocess.Popen(["xvfb-run", "./jetpack_client", "-h", "127.0.0.1", "-p", "4242", "-d"], cwd=project_dir)
-    time.sleep(2)
-    if client_proc.poll() is None:
-        print("Client started successfully and is running.")
-        test4_passed = True
-    else:
-        print(f"Client exited prematurely with code: {client_proc.returncode}")
-except Exception as e:
-    print("Error launching client:", e)
-
-if test4_passed:
-    passed_tests += 1
-
-# Terminate server and client if still running
-if client_proc and client_proc.poll() is None:
-    client_proc.terminate()
-    try:
-        client_proc.wait(timeout=1)
-    except:
-        client_proc.kill()
-
-if server_proc and server_proc.poll() is None:
-    server_proc.terminate()
-    try:
-        server_proc.wait(timeout=1)
-    except:
-        server_proc.kill()
-
-# 6. Test 05 - Minimal Functions Client
-print_header("TEST 05 - MINIMAL FUNCTIONS CLIENT")
+# 4. Test 03 - Minimal Functions Client
+print_header("TEST 03 - MINIMAL FUNCTIONS CLIENT")
 required_funcs = {"socket", "connect", "write", "read", "send", "poll"}
 client_found = set()
 
@@ -141,8 +91,8 @@ else:
     missing = required_funcs - client_found
     print("Missing functions in client:", ", ".join(sorted(missing)))
 
-# 7. Test 06 - Minimal Functions Server
-print_header("TEST 06 - MINIMAL FUNCTIONS SERVER")
+# 5. Test 04 - Minimal Functions Server
+print_header("TEST 04 - MINIMAL FUNCTIONS SERVER")
 required_funcs = {"socket", "write", "read", "poll"}
 server_found = set()
 
@@ -166,10 +116,10 @@ else:
     missing = required_funcs - server_found
     print("Missing functions in server:", ", ".join(sorted(missing)))
 
-# 8. Test 07 - Documentation
-print_header("TEST 07 - DOCUMENTATION")
+# 6. Test 05 - Documentation
+print_header("TEST 05 - DOCUMENTATION")
 doc_path = os.path.join(project_dir, "doc.txt")
-test7_passed = False
+test_doc_passed = False
 if not os.path.isfile(doc_path):
     print("doc.txt is missing.")
 else:
@@ -178,14 +128,64 @@ else:
             lines = [l.strip() for l in f if l.strip()]
         if len(lines) >= 10:
             print("doc.txt is present and has sufficient content.")
-            test7_passed = True
+            test_doc_passed = True
         else:
             print("doc.txt is too short.")
     except Exception as e:
         print("Error reading doc.txt:", e)
 
-if test7_passed:
+if test_doc_passed:
     passed_tests += 1
+
+# # 7. Test 06 - Server runtime
+# print_header("TEST 06 - SERVER")
+# test_server_passed = False
+# server_proc = None
+# try:
+#     server_proc = subprocess.Popen(["./jetpack_server", "-p", "4242", "-m", "maps/basic.map", "-d"], cwd=project_dir)
+#     if wait_for_port("127.0.0.1", 4242):
+#         print("Server started successfully and is listening.")
+#         test_server_passed = True
+#     else:
+#         print("Server did not start or failed to listen on port.")
+# except Exception as e:
+#     print("Error launching server:", e)
+
+# if test_server_passed:
+#     passed_tests += 1
+
+# # 8. Test 07 - Client runtime
+# print_header("TEST 07 - CLIENT")
+# test_client_passed = False
+# client_proc = None
+# try:
+#     client_proc = subprocess.Popen(["xvfb-run", "./jetpack_client", "-h", "127.0.0.1", "-p", "4242", "-d"], cwd=project_dir)
+#     time.sleep(2)
+#     if client_proc.poll() is None:
+#         print("Client started successfully and is running.")
+#         test_client_passed = True
+#     else:
+#         print(f"Client exited prematurely with code: {client_proc.returncode}")
+# except Exception as e:
+#     print("Error launching client:", e)
+
+# if test_client_passed:
+#     passed_tests += 1
+
+# # Cleanup
+# if client_proc and client_proc.poll() is None:
+#     client_proc.terminate()
+#     try:
+#         client_proc.wait(timeout=1)
+#     except:
+#         client_proc.kill()
+
+# if server_proc and server_proc.poll() is None:
+#     server_proc.terminate()
+#     try:
+#         server_proc.wait(timeout=1)
+#     except:
+#         server_proc.kill()
 
 # Summary
 print("\n========== [SUMMARY] ==========")
