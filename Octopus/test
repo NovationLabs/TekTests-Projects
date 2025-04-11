@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+import os
+
+print("\n========== [TEST 01 - DIRECTORY STRUCTURE] ==========")
+required_structure = {
+    "playbook.yml": "file",
+    "poll.tar": "file",
+    "result.tar": "file",
+    "worker.tar": "file",
+    "group_vars/all.yml": "file",
+    "roles/base/tasks/main.yml": "file",
+    "roles/postgresql/files/pg_hba.conf": "file",
+    "roles/postgresql/files/schema.sql": "file",
+    "roles/postgresql/tasks/main.yml": "file",
+    "roles/redis/files/redis.conf": "file",
+    "roles/redis/tasks/main.yml": "file",
+    "roles/poll/files/poll.service": "file",
+    "roles/poll/tasks/main.yml": "file",
+    "roles/result/files/result.service": "file",
+    "roles/result/tasks/main.yml": "file",
+    "roles/worker/files/worker.service": "file",
+    "roles/worker/tasks/main.yml": "file",
+}
+
+missing = []
+
+for path, kind in required_structure.items():
+    full_path = os.path.join(os.getcwd(), path)
+    if kind == "file" and not os.path.isfile(full_path):
+        missing.append(path)
+    elif kind == "dir" and not os.path.isdir(full_path):
+        missing.append(path)
+
+if missing:
+    print("Missing or incorrect paths:")
+    for m in missing:
+        print(" -", m)
+    print("\nTest : 0/1")
+else:
+    print("All required files and folders are present.")
+    print("\nTest : 1/1")
