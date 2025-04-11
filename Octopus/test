@@ -1,7 +1,18 @@
 #!/usr/bin/env python3
 import os
+import sys
+import glob
 
 print("\n========== [TEST 01 - DIRECTORY STRUCTURE] ==========")
+
+project_dirs = glob.glob("B-DOP-400-MAR-4-1-octopus*")
+if len(project_dirs) != 1:
+    print("Error: Expected exactly one project directory starting with 'B-DOP-400-MAR-4-1-octopus'")
+    sys.exit(1)
+
+project_dir = project_dirs[0]
+print("Project directory found:", project_dir)
+
 required_structure = {
     "playbook.yml": "file",
     "poll.tar": "file",
@@ -23,13 +34,12 @@ required_structure = {
 }
 
 missing = []
-
-for path, kind in required_structure.items():
-    full_path = os.path.join(os.getcwd(), path)
-    if kind == "file" and not os.path.isfile(full_path):
-        missing.append(path)
-    elif kind == "dir" and not os.path.isdir(full_path):
-        missing.append(path)
+for rel_path, typ in required_structure.items():
+    full_path = os.path.join(project_dir, rel_path)
+    if typ == "file" and not os.path.isfile(full_path):
+        missing.append(rel_path)
+    elif typ == "dir" and not os.path.isdir(full_path):
+        missing.append(rel_path)
 
 if missing:
     print("Missing or incorrect paths:")
