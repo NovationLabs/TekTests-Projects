@@ -142,7 +142,7 @@ print_header("TEST 06 - SERVER")
 test_server_passed = False
 server_proc = None
 try:
-    server_proc = subprocess.Popen(["./jetpack_server", "-p", "4242", "-m", "maps/basic.txt", "-d"], cwd=project_dir)
+    server_proc = subprocess.Popen(["./jetpack_server", "-p", "4242", "-m", "maps/basic.txt", "-d", "2>/dev/null"], cwd=project_dir)
     if wait_for_port("127.0.0.1", 4242):
         print("Server started successfully and is listening.")
         test_server_passed = True
@@ -159,7 +159,7 @@ print_header("TEST 07 - CLIENT")
 test_client_passed = False
 client_proc = None
 try:
-    client_proc = subprocess.Popen(["xvfb-run", "./jetpack_client", "-h", "127.0.0.1", "-p", "4242", "-d"], cwd=project_dir)
+    client_proc = subprocess.Popen(["xvfb-run", "./jetpack_client", "-h", "127.0.0.1", "-p", "4242", "-d", "2>/dev/null"], cwd=project_dir)
     time.sleep(2)
     if client_proc.poll() is None:
         print("Client started successfully and is running.")
