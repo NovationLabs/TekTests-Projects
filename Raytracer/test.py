@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+import os
+import subprocess
+import glob
+import sys
+import time
+import requests
+
+total_tests = 8
+passed_tests = 0
+project_dir = "."
+
+print("\n")
+
+def print_header(title):
+    print(f"========== [{title}] ==========")
+
+def text_present_in_files(directory, file_pattern, text):
+    files = glob.glob(os.path.join(directory, file_pattern), recursive=True)
+    
+    for file_path in files:
+        try:
+            with open(file_path, 'r', errors='ignore') as f:
+                content = f.read()
+                if text in content:
+                    return True
+        except Exception as e:
+            print(f"Error reading file {file_path}: {e}")
+    
+    return False
+
+print_header("TEST 0 - BUILD PROJECT")
+try:
+    subprocess.run(["make", "fclean"], cwd=project_dir, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.run(["make"], cwd=project_dir, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    print("Build succeeded.")
+    passed_tests += 1
+except subprocess.CalledProcessError as e:
+    print(f"Build failed: {e}")
+    print(f"Error output: {e.stderr.decode()}")
+
+print_header("TEST 1 - SHARED LIBRARIES CHECK")
+so_files = glob.glob(os.path.join(project_dir, "**/*.so"), recursive=True)
+if len(so_files) > 0:
+    print(f"Found {len(so_files)} shared libraries:")
+    for lib in so_files[:5]:
+        print(f"  - {os.path.basename(lib)}")
+    if len(so_files) > 5:
+        print(f"  - ... and {len(so_files) - 5} more")
+    passed_tests += 1
+else:
+    print("No shared libraries (.so files) found.")
+
+print_header("TEST 2 - ERROR HANDLING")
+try:
+    raytracer_exec_path = os.path.join(project_dir, "raytracer")
+    
+    proc = subprocess.run([raytracer_exec_path, "test"], cwd=project_dir, 
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    
+    if proc.returncode == 84:
+        print("Error handling test passed: Program returned 84 on invalid input.")
+        passed_tests += 1
+    else:
+        print(f"Error handling test failed: Program returned {proc.returncode} instead of 84.")
+except Exception as e:
+    print(f"Error handling test failed: {e}")
+
+print_header("TEST 3 - BASIC RENDERING")
+try:
+    cfg_files = glob.glob(os.path.join(project_dir, "**/*.cfg"), recursive=True)
+    
+    if len(cfg_files) > 0:
+        test_scene = cfg_files[0]
+        print(f"Testing rendering with: {test_scene}")
+        
+        os.makedirs("test_outputs", exist_ok=True)
+        
+        proc = subprocess.run([raytracer_exec_path, test_scene, "-w"], cwd=project_dir, 
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        if proc.returncode == 0:
+            print("Rendering test passed.")
+            passed_tests += 1
+        else:
+            print(f"Rendering failed with code {proc.returncode}")
+            print(f"Error output: {proc.stderr.decode()}")
+    else:
+        print("No .cfg files found to test rendering.")
+except Exception as e:
+    print(f"Rendering test failed: {e}")
+
+print_header("TEST 4 - BASIC PRIMITIVES")
+sphere_present = text_present_in_files(project_dir, "**/*.cpp", "sphere") or text_present_in_files(project_dir, "**/*.hpp", "sphere")
+plane_present = text_present_in_files(project_dir, "**/*.cpp", "plane") or text_present_in_files(project_dir, "**/*.hpp", "plane")
+
+if sphere_present and plane_present:
+    print("Basic primitives (sphere and plane) found in code.")
+    passed_tests += 1
+else:
+    if not sphere_present:
+        print("Sphere primitive not found in code.")
+    if not plane_present:
+        print("Plane primitive not found in code.")
+
+print_header("TEST 5 - ADVANCED PRIMITIVES")
+cylinder_present = text_present_in_files(project_dir, "**/*.cpp", "cylinder") or text_present_in_files(project_dir, "**/*.hpp", "cylinder")
+cone_present = text_present_in_files(project_dir, "**/*.cpp", "cone") or text_present_in_files(project_dir, "**/*.hpp", "cone")
+
+if cylinder_present and cone_present:
+    print("Advanced primitives (cylinder and cone) found in code.")
+    passed_tests += 1
+else:
+    if not cylinder_present:
+        print("Cylinder primitive not found in code.")
+    if not cone_present:
+        print("Cone primitive not found in code.")
+
+print_header("TEST 6 - DOCUMENTATION")
+readme_path = os.path.join(project_dir, "README.md")
+if os.path.exists(readme_path):
+    with open(readme_path, 'r') as f:
+        content = f.read()
+        if len(content) > 100:
+            print("README with sufficient content found.")
+            passed_tests += 1
+        else:
+            print("README exists but seems too short.")
+else:
+    print("README.md not found.")
+
+print_header("TEST 7 - ONLINE SERVICE")
+try:
+    response = requests.get("https://raytracer.tektests.ovh", timeout=5)
+    if response.status_code == 200:
+        print("The online service at https://raytracer.tektests.ovh is up and running.")
+        passed_tests += 1
+    else:
+        print(f"The online service returned status code {response.status_code}")
+except requests.RequestException as e:
+    print(f"Could not connect to the online service: {e}")
+
+print("\n========== [SUMMARY] ==========")
+print(f"Tests passed: {passed_tests}/{total_tests}")
+print(f"Status: {'PASSED' if passed_tests == total_tests else 'FAILED'}")
+
+if passed_tests < total_tests:
+    print("\nFailed tests:")
+    if passed_tests < 1:
+        print("- Build project")
+    if passed_tests < 2:
+        print("- Shared libraries check")
+    if passed_tests < 3:
+        print("- Error handling")
+    if passed_tests < 4:
+        print("- Basic rendering")
+    if passed_tests < 5:
+        print("- Basic primitives")
+    if passed_tests < 6:
+        print("- Advanced primitives")
+    if passed_tests < 7:
+        print("- Documentation")
+    if passed_tests < 8:
+        print("- Online service")
