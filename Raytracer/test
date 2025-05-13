@@ -2,9 +2,8 @@
 import os
 import subprocess
 import glob
-import sys
-import time
-import requests
+import urllib.request
+import urllib.error
 
 total_tests = 8
 passed_tests = 0
@@ -131,13 +130,13 @@ else:
 
 print_header("TEST 7 - ONLINE SERVICE")
 try:
-    response = requests.get("https://raytracer.tektests.ovh", timeout=5)
-    if response.status_code == 200:
-        print("The online service at https://raytracer.tektests.ovh is up and running.")
-        passed_tests += 1
-    else:
-        print(f"The online service returned status code {response.status_code}")
-except requests.RequestException as e:
+    with urllib.request.urlopen("https://raytracer.tektests.ovh", timeout=5) as response:
+        if response.status == 200:
+            print("The online service at https://raytracer.tektests.ovh is up and running.")
+            passed_tests += 1
+        else:
+            print(f"The online service returned status code {response.status}")
+except urllib.error.URLError as e:
     print(f"Could not connect to the online service: {e}")
 
 print("\n========== [SUMMARY] ==========")
