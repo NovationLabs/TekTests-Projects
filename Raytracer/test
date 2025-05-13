@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import sys
 import subprocess
 import glob
 import urllib.request
@@ -7,7 +8,15 @@ import urllib.error
 
 total_tests = 8
 passed_tests = 0
-project_dir = "."
+
+# Detect project directory
+project_dirs = glob.glob("B-OOP-400-MAR-4-1-raytracer*")
+if len(project_dirs) != 1:
+    print("Error: Expected exactly one project directory starting with 'B-OOP-400-MAR-4-1-raytracer'")
+    sys.exit(1)
+
+project_dir = project_dirs[0]
+
 
 print("\n")
 
