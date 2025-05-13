@@ -16,8 +16,7 @@ if len(project_dirs) != 1:
     sys.exit(1)
 
 project_dir = project_dirs[0]
-
-
+os.system("ls -l")
 print("\n")
 
 def print_header(title):
